@@ -6,28 +6,27 @@ using UnityEditor;
 public class LightningEffectV3 : MonoBehaviour
 {
 
+    [SerializeField]
+    private Sprite pathSprite = null;
 
     [SerializeField]
-    private Sprite pathSprite;
+    private GameObject outline = null;
 
     [SerializeField]
-    private GameObject outline;
-
-    [SerializeField]
-    private float outlineWeight;
+    private float outlineWeight = 0.2f;
 
 
     [SerializeField]
-    private GameObject[] radialPoints;
+    private GameObject[] radialPoints = null;
 
     [SerializeField]
-    private float repositionChance;
+    private float repositionChance = 0.5f;
     [SerializeField]
-    private float period;
+    private float period = 0.1f;
     [SerializeField]
-    private float magnitude;
+    private float magnitude = 0.2f;
     [SerializeField]
-    private float meshResolution;
+    private float meshResolution = 1f;
 
 
     private float timeSinceUpdate;
@@ -44,6 +43,7 @@ public class LightningEffectV3 : MonoBehaviour
         
         mesh = GetComponent<MeshFilter>().mesh;
         outlineMesh = outline.GetComponent<MeshFilter>().mesh;
+
 
         List<Vector2> pathPoints = new List<Vector2>();
 
@@ -79,7 +79,6 @@ public class LightningEffectV3 : MonoBehaviour
         for (int i=0; i<originalVertices.Length; i++) {
             originalVertices[i] = new Vector3(vertices2D[i].x, vertices2D[i].y, 0);
         }
-
         for(int i = 0; i<originalVertices.Length; i++)
         {
             Vector3 normalVec = GetNormal(originalVertices, i);
@@ -121,11 +120,11 @@ public class LightningEffectV3 : MonoBehaviour
                     float closestDist = 1000;
                     foreach(var point in radialPoints)
                     {
-                        float newDist = Vector2.Distance(vertices[i], point.transform.position);
+                        float newDist = Vector2.Distance(vertices[i], point.transform.localPosition);
                         if(newDist < closestDist)
                         {
                             closestDist = newDist;
-                            closestPoint = point.transform.position;
+                            closestPoint = point.transform.localPosition;
                         }
                     }
 
@@ -133,16 +132,20 @@ public class LightningEffectV3 : MonoBehaviour
 
                     Vector3 radialVector = vertices[i] - closestPoint;
                     vertices[i] += radialVector.normalized*randMag;
-
-                    Vector3 normalVec = GetNormal(vertices, i);
-                    outlineVertices[i] = vertices[i] + normalVec*outlineWeight*randMag;
-    
                 }
             }
 
             mesh.vertices = vertices;
             mesh.RecalculateNormals();
             mesh.RecalculateBounds(); 
+
+            for(int i = 0; i<vertices.Length; i++)
+            {
+                Vector3 normalVec = GetNormal(vertices, i);
+                outlineVertices[i] = vertices[i] + normalVec*outlineWeight;
+            }
+
+
 
 
             outlineMesh.vertices = outlineVertices;
@@ -161,6 +164,7 @@ public class LightningEffectV3 : MonoBehaviour
         Vector3 prevPoint;
         Vector3 nextPoint;
         Vector3 curPoint = points[i];
+        
         if(i <= 0)
         {
             prevPoint = points[points.Length - 1];
@@ -180,30 +184,22 @@ public class LightningEffectV3 : MonoBehaviour
         }
         Vector3 vec1 = Vector3.Normalize(prevPoint - curPoint);
         Vector3 vec2 = Vector3.Normalize(nextPoint - curPoint);
-        // float angle = Vector3.Angle(vec1, vec2)/2;
-        
-        // angle = Mathf.Deg2Rad * angle;
-        // Vector3 normal = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle));
-        Vector3 normal = vec1+vec2;
-        normal = Vector3.Normalize(normal);
 
-        //Flip normal if outside angle of vectors is greater than 180
-        if(vec1.y < 0 && vec2.y < 0 && curPoint.y > 0)
+        Vector3 normal = vec1+vec2;
+        if(normal == Vector3.zero)
+        {
+            normal = Vector2.Perpendicular(vec1);
+        }
+        normal = Vector3.Normalize(normal);
+        
+        // Debug.DrawLine(curPoint, curPoint+normal, Color.blue, period);
+        if(Vector3.Magnitude(curPoint - normal) > Vector3.Magnitude(curPoint + normal))
         {
             normal *= -1;
         }
-        else if(vec1.y > 0 && vec2.y > 0 && curPoint.y < 0)
-        {
-            normal *= -1;
-        }
-        else if(vec1.x < 0 && vec2.x < 0 && curPoint.x > 0)
-        {
-            normal *= -1;
-        }
-        else if(vec1.x > 0 && vec2.x > 0 && curPoint.x < 0)
-        {
-            normal *= -1;
-        }
+        
+        // Debug.DrawLine(curPoint, curPoint+normal, Color.red, period);
         return normal;
     }
+
 }
