@@ -116,17 +116,7 @@ public class LightningEffectV3 : MonoBehaviour
                 float randNum = Random.Range(0f, 1.0f);
                 if(randNum <= repositionChance)
                 {
-                    Vector3 closestPoint = Vector2.zero;
-                    float closestDist = 1000;
-                    foreach(var point in radialPoints)
-                    {
-                        float newDist = Vector2.Distance(vertices[i], point.transform.localPosition);
-                        if(newDist < closestDist)
-                        {
-                            closestDist = newDist;
-                            closestPoint = point.transform.localPosition;
-                        }
-                    }
+                    Vector3 closestPoint = FindClosestRadialPoint(vertices[i]);
 
                     float randMag = Random.Range(0, magnitude);
 
@@ -164,7 +154,7 @@ public class LightningEffectV3 : MonoBehaviour
         Vector3 prevPoint;
         Vector3 nextPoint;
         Vector3 curPoint = points[i];
-        
+
         if(i <= 0)
         {
             prevPoint = points[points.Length - 1];
@@ -182,24 +172,50 @@ public class LightningEffectV3 : MonoBehaviour
         {
             nextPoint = points[i+1];
         }
+
+
         Vector3 vec1 = Vector3.Normalize(prevPoint - curPoint);
         Vector3 vec2 = Vector3.Normalize(nextPoint - curPoint);
 
         Vector3 normal = vec1+vec2;
+
+        //If vec1 and vec2 form a line, make the normal perpendicular to the line
         if(normal == Vector3.zero)
         {
             normal = Vector2.Perpendicular(vec1);
         }
         normal = Vector3.Normalize(normal);
         
+        //Determine if the normal needs to be flipped (flip if its inside the mesh)
+        //Compare magnitudes with closest radial point to avoid ambiguous cases 
+        //(this isn't a perfect solution to determine if the normal is inside or outside of the mesh but its good enough)
         // Debug.DrawLine(curPoint, curPoint+normal, Color.blue, period);
-        if(Vector3.Magnitude(curPoint - normal) > Vector3.Magnitude(curPoint + normal))
+        Vector3 origin = FindClosestRadialPoint(points[i]);
+        Vector3 curPointNewOrigin = curPoint - origin;
+
+        if(Vector3.Magnitude(curPointNewOrigin - normal) > Vector3.Magnitude(curPointNewOrigin + normal))
         {
             normal *= -1;
         }
-        
         // Debug.DrawLine(curPoint, curPoint+normal, Color.red, period);
+
         return normal;
+    }
+
+    Vector3 FindClosestRadialPoint(Vector3 vertex)
+    {
+        Vector3 closestPoint = Vector3.zero;
+        float closestDist = 1000;
+        foreach(var point in radialPoints)
+        {
+            float newDist = Vector2.Distance(vertex, point.transform.localPosition);
+            if(newDist < closestDist)
+            {
+                closestDist = newDist;
+                closestPoint = point.transform.localPosition;
+            }
+        }
+        return closestPoint;
     }
 
 }
